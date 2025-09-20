@@ -171,4 +171,5 @@ cython_debug/
 .pypirc
 lightcast_job_postings.csv
 assignment03-sminaya1_files
-
+data/lightcast_job_postings.csv
+data/lightcast_cleaned.csv
