@@ -170,4 +170,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 lightcast_job_postings.csv
+assignment03-sminaya1_files
 
