@@ -26,7 +26,7 @@ execute:
 jupyter: python3
 ---
 
-# Import Packges 
+# Import Packages 
 
 ```{python}
 import pandas as pd
@@ -48,6 +48,42 @@ np.random.seed(42)
 
 # Change Plotly renderer for notebooks
 pio.renderers.default = "notebook"
+
+```
+
+# Plotly Templete
+
+```{python}
+
+pio.templates["nike"] = go.layout.Template(
+    # LAYOUT
+    layout = {
+        # Fonts
+        # Note - 'family' must be a single string, NOT a list or dict!
+        'title':
+            {'font': {'family': 'HelveticaNeue-CondensedBold, Helvetica, Sans-serif',
+                      'size':30,
+                      'color': '#333'}
+            },
+        'font': {'family': 'Helvetica Neue, Helvetica, Sans-serif',
+                      'size':16,
+                      'color': '#333'},
+        # Colorways
+        'colorway': ['#ec7424', '#a4abab'],
+        # Keep adding others as needed below
+        'hovermode': 'x unified'
+    },
+    # DATA
+    data = {
+        # Each graph object must be in a tuple or list for each trace
+        'bar': [go.Bar(texttemplate = '%{value:$.2s}',
+                       textposition='outside',
+                       textfont={'family': 'Helvetica Neue, Helvetica, Sans-serif',
+                                 'size': 20,
+                                 'color': '#FFFFFF'
+                                 })]
+    }
+)
 
 ```
 
@@ -100,12 +136,11 @@ print("Medians:", median_from, median_to, median_salary)
 df = df.fillna({
      "SALARY_FROM": median_from,
      "SALARY_TO": median_to,
-     "SALARY": median_salary
+   
 })
 
 # Step 5: Computing Average Salary
-df = df.withColumn("Average_Salary", (col("SALARY_FROM") + col("SALARY_TO")) /
-2)
+df = df.withColumn("Average_Salary", (col("SALARY_FROM") + col("SALARY_TO")) /2)
 
 # Step 6: Selecting required columns
 export_cols = [
@@ -128,97 +163,247 @@ print("Data cleaning complete. Rows retained:", len(pdf))
 ```
 
 
-# Salary Distribution by Industry and Employment Type
+# Salary Distribution Employment Type
 
 ```{python}
-# Your Code for 1st question here
 
 # Filter out missing or zero salary values
 pdf = (
-    df.select("EMPLOYMENT_TYPE_NAME", "SALARY")
-      .withColumn("SALARY", col("SALARY").cast("double"))
-      .filter(col("SALARY") > 0)
+    df.select("EMPLOYMENT_TYPE_NAME", col("SALARY").cast("double").alias("SALARY"))
+      .filter( (col("SALARY").isNotNull()) & (col("SALARY") > 0) )
       .toPandas()
 )
 
-# Clean employment type names for better readability
+# Clean labels
 pdf["EMPLOYMENT_TYPE_NAME"] = (
-    pdf["EMPLOYMENT_TYPE_NAME"]
-      .astype("string")           # ensures string ops work
-      .fillna("Unknown")          # avoid NoneType
-      .str.replace(r"[^\x00-\x7F]+", "", regex=True)
-      .str.strip()
+    pdf["EMPLOYMENT_TYPE_NAME"].astype("string").fillna("Unknown")
+      .str.replace(r"[^\x00-\x7F]+", "", regex=True).str.strip()
 )
 
-# Compute median salary for sorting
-median_salaries = pdf.groupby("EMPLOYMENT_TYPE_NAME")["SALARY"].median()
-
-# Sort employment types based on median salary in descending order
-sorted_employment_types = median_salaries.sort_values(ascending=False).index
-
-# Apply sorted categories
-pdf["EMPLOYMENT_TYPE_NAME"] = pd.Categorical(
-    pdf["EMPLOYMENT_TYPE_NAME"],
-    categories=sorted_employment_types,
-    ordered=True
+# Sort by median salary
+sorted_employment_types = (
+    pdf.groupby("EMPLOYMENT_TYPE_NAME")["SALARY"].median()
+       .sort_values(ascending=False).index
 )
+pdf["EMPLOYMENT_TYPE_NAME"] = pd.Categorical(pdf["EMPLOYMENT_TYPE_NAME"],
+                                             categories=sorted_employment_types,
+                                             ordered=True)
 
-# Create box plot with horizontal grid lines
+# --- box plot: show outliers only ---
 fig = px.box(
     pdf,
     x="EMPLOYMENT_TYPE_NAME",
     y="SALARY",
     title="Salary Distribution by Employment Type",
-    color_discrete_sequence=["black"],  # Single neutral color
-    boxmode="group",
-    points="all",  # Show all outliers
+    color_discrete_sequence=["#EF553B"],
+    points="outliers"  # ← key change
 )
 
-# Improve layout, font styles, and axis labels
 fig.update_layout(
-    title=dict(
-        text="Salary Distribution by Employment Type",
-        font=dict(size=30, family="Arial", color="black", weight="bold"),  # Bigger & Bold Title
-    ),
-    xaxis=dict(
-        title=dict(text="Employment Type", font=dict(size=24, family="Arial", color="black", weight="bold")),  # Bigger X-label
-        tickangle=0,  # Rotate X-axis labels for readability
-        tickfont=dict(size=18, family="Arial", color="black", weight="bold"),  # Bigger & Bold X-ticks
-        showline=True,  # Show axis lines
-        linewidth=2,  # Thicker axis lines
-        linecolor="black",
-        mirror=True,
-        showgrid=False,  # Remove vertical grid lines
-        categoryorder="array",
-        categoryarray=sorted_employment_types.tolist(),
-    ),
-    yaxis=dict(
-        title=dict(text="Salary (K $)", font=dict(size=24, family="Arial", color="black", weight="bold")),  # Bigger Y-label
-        tickvals=[0, 50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000, 450000, 500000],
-        ticktext=["0", "50K", "100K", "150K", "200K", "250K", "300K", "350K", "400K", "450K", "500K"],
-        tickfont=dict(size=18, family="Arial", color="black", weight="bold"),  # Bigger & Bold Y-ticks
-        showline=True,
-        linewidth=2,
-        linecolor="black",
-        mirror=True,
-        showgrid=True,  # Enable light horizontal grid lines
-        gridcolor="lightgray",  # Light shade for the horizontal grid
-        gridwidth=0.5,  # Thin grid lines
-    ),
-    font=dict(family="Arial", size=16, color="black"),
-    boxgap=0.7,
+    xaxis=dict(title="Employment Type", categoryorder="array",
+               categoryarray=sorted_employment_types.tolist(),
+               tickfont=dict(size=18)),
+    yaxis=dict(title="Salary (K $)", range=[0, 500000],
+               tickvals=[0, 50_000, 100_000, 150_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000, 500_000],
+               ticktext=["0","50K","100K","150K","200K","250K","300K","350K","400K","450K","500K"]),
+    font=dict(family="Arial", size=16),
     plot_bgcolor="white",
     paper_bgcolor="white",
     showlegend=False,
-    height=500,
-    width=850,
+    height=500, width=850
 )
 
-# Show the figure
+fig.show()
+fig.write_html("output/DistributionEmploymentType.html")
+fig.write_image("output/DistributionEmploymentType.svg", width=850, height=500, scale=1)
+
+```
+
+
+# Salary Distribution by Industry
+
+```{python}
+#| eval: false
+#| echo: true
+#| fig-align: center
+
+pdf = df.select("NAICS2_NAME", "SALARY").toPandas()
+
+fig = px.box(
+    pdf,
+    x="NAICS2_NAME",
+    y="SALARY",
+    title="Salary Distribution by Industry",
+    color_discrete_sequence=["#EF553B"]
+)
+
+fig.update_layout(template="nike")  # change to "plotly_white" if this template isn't available
+
+# rotate x-axis labels for readability
+fig.update_xaxes(tickangle=45)
+
 fig.show()
 
-# Save outputs
-fig.write_html("output/Q1.html")
-fig.write_image("output/Q1.svg", width=850, height=500, scale=1)
+fig.write_html("output/DistributionIndustry.html")
+fig.write_image("output/DistributionIndustry.svg", width=850, height=500, scale=1)
+
+```
+
+ # Salary Analysis by ONET Occupation Type (Bubble Chart)
+
+ ```{python}
+#| eval: false
+#| echo: false
+
+# Step 1: Spark SQL - Median salary and job count per TITLE_NAME
+salary_analysis = spark.sql("""
+SELECT
+  LOT_OCCUPATION_NAME AS Occupation_Name,
+  PERCENTILE(SALARY, 0.5) AS Median_Salary,
+  COUNT(*) AS Job_Postings
+FROM job_postings
+GROUP BY LOT_OCCUPATION_NAME
+ORDER BY Job_Postings DESC
+LIMIT 10
+""")
+
+# Step 2: Convert to Pandas DataFrame
+salary_pd = salary_analysis.toPandas()
+salary_pd.head()
+
+fig = px.scatter(
+    salary_pd,
+    x="Occupation_Name",
+    y="Median_Salary",
+    size="Job_Postings",
+    title="Salary Analysis by LOT Occupation Type (Bubble Chart)",
+    labels={
+        "Occupation_Name": "LOT Occupation",
+        "Median_Salary": "Median Salary",
+        "Job_Postings": "Number of Job Postings",
+    },
+    hover_name="Occupation_Name",
+    size_max=60,
+    width=1000,
+    height=600,
+    color="Job_Postings",
+    color_continuous_scale="Plasma",
+)
+# Step 4: Layout customization
+fig.update_layout(
+    font_family="Arial",
+    font_size=14,
+    title_font_size=25,
+    xaxis_title="LOT Occupation",
+    yaxis_title="Median Salary",
+    plot_bgcolor="white",
+    xaxis=dict(
+        tickangle=-45,
+        showline=True,
+        linecolor="black",
+    ),
+    yaxis=dict(
+        showline=True,
+        linecolor="black",
+    ),
+)
+
+# Step 5: Show and export
+fig.show()
+fig.write_html("output/salaryAnalsis.html")
+fig.write_image("output/salaryAnalysis.svg", width=1000, height=600, scale=1)
+ ```
+
+# Salary by Education Level
+
+```{python}
+#| eval: true
+#| echo: true
+
+# ---- Prep: group education levels, clean & filter ----
+from pyspark.sql.functions import col, when
+
+# Defining education level groupings
+lower_deg  = ["Bachelor's", "Associate", "GED", "No Education Listed", "High school"]
+higher_deg = ["Master's degree", "PhD or professional degree"]
+
+# Add EDU_GROUP column
+df = df.withColumn(
+    "EDU_GROUP",
+    when(
+        col("EDUCATION_LEVELS_NAME").rlike("|".join([f"(?i){deg}" for deg in lower_deg])),
+        "Bachelor's or lower",
+    )
+    .when(
+        col("EDUCATION_LEVELS_NAME").rlike("|".join([f"(?i){deg}" for deg in higher_deg])),
+        "Master's or PhD",
+    )
+    .otherwise("Other")
+)
+
+# Cast to numeric
+df = df.withColumn("MAX_YEARS_EXPERIENCE", col("MAX_YEARS_EXPERIENCE").cast("float"))
+df = df.withColumn("Average_Salary",      col("Average_Salary").cast("float"))
+
+# Keep non-null & positive values
+df = df.filter(
+    col("MAX_YEARS_EXPERIENCE").isNotNull()
+    & col("Average_Salary").isNotNull()
+    & (col("MAX_YEARS_EXPERIENCE") > 0)
+    & (col("Average_Salary") > 0)
+)
+
+# Keep just the two education groups
+df_filtered = df.filter(col("EDU_GROUP").isin("Bachelor's or lower", "Master's or PhD"))
+
+# Convert to pandas for plotting
+df_pd = df_filtered.toPandas()
+
+# ---- Plot: Experience vs Salary by Education Group ----
+import os
+import plotly.express as px
+
+fig1 = px.scatter(
+    df_pd,
+    x="MAX_YEARS_EXPERIENCE",
+    y="Average_Salary",
+    color="EDU_GROUP",
+    title="Experience vs Salary by Education Group",
+    labels={
+        "MAX_YEARS_EXPERIENCE": "Years of Experience",
+        "Average_Salary": "Average Salary (USD)",
+        "EDU_GROUP": "Education Group",
+    },
+)
+
+fig1.update_layout(
+    plot_bgcolor="#f9f9f9",   # light grey chart background
+    paper_bgcolor="#FFF5DC",  # soft frame
+    font=dict(family="Segoe UI", size=14),
+    title_font=dict(size=22),
+    xaxis_title="Years of Experience",
+    yaxis_title="Average Salary (USD)",
+    legend_title="Education Group",
+    hoverlabel=dict(bgcolor="white", font_size=13, font_family="Arial"),
+    margin=dict(t=70, b=60, l=60, r=60),
+    xaxis=dict(
+        gridcolor="lightgrey",
+        tickmode="linear",
+        dtick=1,               # show every integer year
+    ),
+    yaxis=dict(gridcolor="lightgrey"),
+)
+
+fig1.show()
+
+# Save HTML (static image export requires kaleido)
+fig1.write_html("output/SalaryEducationLevel")
+
+```
+
+# Salary by Remote Work Type
+
+```{python}
+
 
 ```
