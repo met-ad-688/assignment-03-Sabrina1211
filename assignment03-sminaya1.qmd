@@ -166,7 +166,6 @@ df_selected = df.select(*export_cols)
 
 # Step 7: Saving to csv
 pdf = df_selected.toPandas()
-pdf.head()
 pdf.to_csv("./data/lightcast_cleaned.csv", index=False)
 
 print("Data cleaning complete. Rows retained:", len(pdf))
@@ -231,6 +230,8 @@ fig.write_image("figures/DistributionEmploymentType.svg", width=850, height=500,
 
 ![](./figures/DistributionEmploymentType.svg)
 
+The graph shows how full-time jobs are more likely to have higher pay than part-time work. Yet, there are some part-time jobs that have a relatively wide wage range, where some people earn as much as full-time employees.
+
 # Salary Distribution by Industry
 
 ```{python}
@@ -263,6 +264,8 @@ fig.write_image("figures/DistributionIndustry.svg", width=1000, height=600, scal
 ```
 
 ![](./figures/DistributionIndustry.svg)
+
+This chart highlights the large differences in pay between industries. Industries like Information and Finance/Insurance have higher median pay and a wide range of pay. On the other hand, industries like education and retail normally have lower pay which are more concentrated.
 
 # Salary Analysis by ONET Occupation Type (Bubble Chart)
 
@@ -334,6 +337,9 @@ fig.write_image("figures/salaryAnalysisbyLotOccupation.svg", width=1000, height=
 ```
 
 ![](./figures/salaryAnalysisbyLotOccupation.svg)
+
+The bubble chart shows that occupations like Data Analysts and Business Intelligence Analysts have the highest number of job postings. However, Computer Systems Engineers/Architects stand out with the highest median salary, even though there are fewer postings compared to other roles.
+
 
 # Salary by Education Level
 
@@ -430,6 +436,8 @@ fig1.write_image("figures/SalaryEducationLevel.svg", width=1000, height=600, sca
 
 ![](./figures/SalaryEducationLevel.svg)
 
+The chart shows that salaries generally increase with more years of experience across all education levels. Higher education levels, like Master’s and PhD, tend to earn slightly more, but there is overlap with Bachelor’s and Associate degrees.
+
 # Salary by Remote Work Type
 
 ```{python}
@@ -519,3 +527,6 @@ fig_remote.write_image("figures/RemoteWorkType_scatter.svg", width=1000, height=
 ```
 
 ![](./figures/RemoteWorkType_scatter.svg)
+
+The chart shows that salaries increase slightly with more years of experience, regardless of remote work type. Onsite, remote, and hybrid roles have similar salary patterns, though onsite jobs appear more common across the data.
+
