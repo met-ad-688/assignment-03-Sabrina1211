@@ -51,7 +51,7 @@ import os
 np.random.seed(42)
 
 # Change Plotly renderer for notebooks
-pio.renderers.default = "notebook_connected"
+pio.renderers.default = "notebook"
 
 ```
 
@@ -166,6 +166,7 @@ df_selected = df.select(*export_cols)
 
 # Step 7: Saving to csv
 pdf = df_selected.toPandas()
+pdf.head()
 pdf.to_csv("./data/lightcast_cleaned.csv", index=False)
 
 print("Data cleaning complete. Rows retained:", len(pdf))
@@ -340,80 +341,85 @@ fig.write_image("figures/salaryAnalysisbyLotOccupation.svg", width=1000, height=
 
 # Map raw education text into 4 groups
 df_edu = (
-    df.withColumn(
-        "EDU_GROUP",
-        F.when(F.col("EDUCATION_LEVELS_NAME").rlike("(?i)Associate|GED|No Education Listed|High school"), "Associate or Lower")
-         .when(F.col("EDUCATION_LEVELS_NAME").rlike("(?i)Bachelor"), "Bachelor")
-         .when(F.col("EDUCATION_LEVELS_NAME").rlike("(?i)Master"), "Master’s")
-         .when(F.col("EDUCATION_LEVELS_NAME").rlike("(?i)PhD|Doctorate|professional degree"), "PhD")
-         .otherwise(None)
-    )
-    .filter(
-        F.col("EDU_GROUP").isNotNull()
-        & F.col("MAX_YEARS_EXPERIENCE").isNotNull()
-        & F.col("Average_Salary").isNotNull()
-        & (F.col("MAX_YEARS_EXPERIENCE") > 0)
-        & (F.col("Average_Salary") > 0)
-    )
+   df.withColumn(
+       "EDU_GROUP",
+       F.when(F.col("EDUCATION_LEVELS_NAME").rlike("(?i)Associate|GED|No Education Listed|High school"), "Associate or Lower")
+        .when(F.col("EDUCATION_LEVELS_NAME").rlike("(?i)Bachelor"), "Bachelor")
+        .when(F.col("EDUCATION_LEVELS_NAME").rlike("(?i)Master"), "Master’s")
+        .when(F.col("EDUCATION_LEVELS_NAME").rlike("(?i)PhD|Doctorate|professional degree"), "PhD")
+        .otherwise(None)
+   )
+   .filter(
+       F.col("EDU_GROUP").isNotNull()
+       & F.col("MAX_YEARS_EXPERIENCE").isNotNull()
+       & F.col("Average_Salary").isNotNull()
+       & (F.col("MAX_YEARS_EXPERIENCE") > 0)
+       & (F.col("Average_Salary") > 0)
+   )
 )
+
 
 pdf_edu = df_edu.select(
-    F.col("MAX_YEARS_EXPERIENCE").alias("Experience"),
-    F.col("Average_Salary").alias("Average_Salary"),
-    F.col("EDU_GROUP").alias("Education Group"),
-    F.col("LOT_V6_SPECIALIZED_OCCUPATION_NAME").alias("Occupation Name")
+   F.col("MAX_YEARS_EXPERIENCE").alias("Experience"),
+   F.col("Average_Salary").alias("Average_Salary"),
+   F.col("EDU_GROUP").alias("Education Group"),
+   F.col("LOT_V6_SPECIALIZED_OCCUPATION_NAME").alias("Occupation Name")
 ).toPandas()
 
-# --- 2) Show table first ------------------------------------------------------
+
+#  Show table first
 from IPython.display import display
 tbl = (
-    pdf_edu[["Experience","Average_Salary","Education Group","Occupation Name"]]
-      .rename(columns={"Experience":"MAX_EXPERIENCE","Average_Salary":"AVERAGE_SALARY",
-                       "Education Group":"EDU_GROUP","Occupation Name":"OCCUPATION_NAME"})
-      .head(5)
+   pdf_edu[["Experience","Average_Salary","Education Group","Occupation Name"]]
+     .rename(columns={"Experience":"MAX_EXPERIENCE","Average_Salary":"AVERAGE_SALARY",
+                      "Education Group":"EDU_GROUP","Occupation Name":"OCCUPATION_NAME"})
+     .head(5)
 )
 display(
-    tbl.style
-       .format({"AVERAGE_SALARY": "${:,.0f}", "MAX_EXPERIENCE": "{:.1f}"})
-       .hide(axis="index")
+   tbl.style
+      .format({"AVERAGE_SALARY": "${:,.0f}", "MAX_EXPERIENCE": "{:.1f}"})
+      .hide(axis="index")
 )
 
-# Plot (nike template) 
+
+# Plot (nike template)
 
 
 order = ["Associate or Lower","Bachelor","Master’s","PhD"]
 fig1 = px.scatter(
-    pdf_edu,
-    x="Experience",
-    y="Average_Salary",
-    color="Education Group",
-    category_orders={"Education Group": order},
-    title="Experience vs Salary by Education Level",
-    labels={"Experience":"Years of Experience", "Average_Salary":"Average Salary (USD)"},
-    template="nike",
-    opacity=0.8
+   pdf_edu,
+   x="Experience",
+   y="Average_Salary",
+   color="Education Group",
+   category_orders={"Education Group": order},
+   title="Experience vs Salary by Education Level",
+   labels={"Experience":"Years of Experience", "Average_Salary":"Average Salary (USD)"},
+   template="nike",
+   opacity=0.8
 )
 # Soft beige frame + light plotting area + subtle grid
 fig1.update_layout(
-    paper_bgcolor="#FFF5DC",     # outer background (around the plot)
-    plot_bgcolor="#f9f9f9",      # inner plotting area
-    margin=dict(l=60, r=60, t=80, b=70),
-    xaxis=dict(
-        tickmode="linear", dtick=1,
-        gridcolor="rgba(0,0,0,0.12)",  # light grid
-        zeroline=False
-    ),
-    yaxis=dict(
-        gridcolor="rgba(0,0,0,0.12)",
-        zeroline=False
-    ),
-    legend=dict(
-        bgcolor="rgba(255,245,220,0.7)",  # optional: match the frame
-        bordercolor="#E6D9B6", borderwidth=1
-    )
+   paper_bgcolor="#FFF5DC",     # outer background (around the plot)
+   plot_bgcolor="#f9f9f9",      # inner plotting area
+   margin=dict(l=60, r=60, t=80, b=70),
+   xaxis=dict(
+       tickmode="linear", dtick=1,
+       gridcolor="rgba(0,0,0,0.12)",  # light grid
+       zeroline=False
+   ),
+   yaxis=dict(
+       gridcolor="rgba(0,0,0,0.12)",
+       zeroline=False
+   ),
+   legend=dict(
+       bgcolor="rgba(255,245,220,0.7)",  # optional: match the frame
+       bordercolor="#E6D9B6", borderwidth=1
+   )
 )
 
+
 fig1.update_traces(marker=dict(size=6, opacity=0.8))
+
 
 # Show the chart 
 #fig1.show()
@@ -423,3 +429,93 @@ fig1.write_image("figures/SalaryEducationLevel.svg", width=1000, height=600, sca
 ```
 
 ![](./figures/SalaryEducationLevel.svg)
+
+# Salary by Remote Work Type
+
+```{python}
+
+# Normalize strings and map to 3 buckets
+# Build Remote / Hybrid / Onsite groups 
+df_remote = (
+    df.withColumn("REMOTE_NORM", F.lower(F.trim(F.col("REMOTE_TYPE_NAME"))))
+      .withColumn(
+          "REMOTE_GROUP",
+          F.when(F.col("REMOTE_NORM").rlike(r"hyb|mix|both|partial|split|combo"), "Hybrid")
+           .when(F.col("REMOTE_NORM").rlike(r"remote|wfh|home|tele"), "Remote")
+           .otherwise("Onsite")
+      )
+      .drop("REMOTE_NORM")
+      .filter(
+          F.col("MAX_YEARS_EXPERIENCE").isNotNull() &
+          F.col("Average_Salary").isNotNull() &
+          (F.col("MAX_YEARS_EXPERIENCE") > 0) &
+          (F.col("Average_Salary") > 0)
+      )
+)
+
+pdf_remote = df_remote.select(
+    F.col("MAX_YEARS_EXPERIENCE").alias("Experience"),
+    F.col("Average_Salary").alias("Average_Salary"),
+    F.col("REMOTE_GROUP").alias("Remote Work Type"),
+    F.col("LOT_V6_SPECIALIZED_OCCUPATION_NAME").alias("Occupation Name")
+).toPandas()
+
+# Preview table (top 5)
+from IPython.display import display
+display(
+    (pdf_remote[["Experience","Average_Salary","Remote Work Type","Occupation Name"]]
+       .rename(columns={"Experience":"MAX_YEARS_EXPERIENCE",
+                        "Average_Salary":"AVERAGE_SALARY",
+                        "Remote Work Type":"REMOTE_GROUP",
+                        "Occupation Name":"OCCUPATION_NAME"})
+       .head(5)
+       .style.format({"AVERAGE_SALARY":"${:,.0f}", "MAX_YEARS_EXPERIENCE":"{:.1f}"})
+       .hide(axis="index"))
+)
+
+order      = ["Onsite", "Remote", "Hybrid"]
+color_map  = {"Onsite":"#1f77b4", "Remote":"#ff7f0e", "Hybrid":"#2ca02c"}  
+
+fig_remote = px.scatter(
+    pdf_remote,
+    x="Experience",
+    y="Average_Salary",
+    color="Remote Work Type",
+    category_orders={"Remote Work Type": order},
+    color_discrete_map=color_map,
+    title="Experience vs Salary by Remote Work Type",
+    labels={"Experience":"Years of Experience", "Average_Salary":"Average Salary (USD)"},
+    template="nike",
+    opacity=0.8
+)
+
+# match your education layout exactly
+fig_remote.update_layout(
+    paper_bgcolor="#E8F5E9",   
+    plot_bgcolor="#F1FAF1",    
+    margin=dict(l=60, r=60, t=80, b=70),
+    xaxis=dict(
+        tickmode="linear", dtick=1,
+        gridcolor="rgba(0,0,0,0.12)",
+        zeroline=False
+    ),
+    yaxis=dict(
+        gridcolor="rgba(0,0,0,0.12)",
+        zeroline=False
+    ),
+    legend=dict(
+        bgcolor="rgba(232,245,233,0.8)",  
+        bordercolor="#A5D6A7", borderwidth=1,
+        title_text="Remote Work Type"
+    )
+)
+
+fig_remote.update_traces(marker=dict(size=6, opacity=0.8, line=dict(width=0)))
+
+# Show 
+# fig_remote.show()
+fig_remote.write_html("figures/RemoteWorkType_scatter.html")
+fig_remote.write_image("figures/RemoteWorkType_scatter.svg", width=1000, height=600, scale=1)
+```
+
+![](./figures/RemoteWorkType_scatter.svg)
