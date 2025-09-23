@@ -111,9 +111,6 @@ df = spark.read.option("header", "true").option("inferSchema", "true").option("m
 
 df.createOrReplaceTempView("job_postings")
 
-# Show Schema and Sample Data
-#print("---This is Diagnostic check, No need to print it in the final doc---")
-
 #df.printSchema() # comment this line when rendering the submission
 #df.show(5)
 
@@ -249,9 +246,7 @@ fig = px.box(
    color_discrete_sequence=["#EF553B"]
 )
 
-
-fig.update_layout(template="nike")  # change to "plotly_white" if this template isn't available
-
+fig.update_layout(template="nike")  
 
 # rotate x-axis labels for readability
 fig.update_xaxes(tickangle=45)
@@ -259,7 +254,6 @@ fig.update_xaxes(tickangle=45)
 # fig.show()
 fig.write_html("figures/DistributionIndustry.html")
 fig.write_image("figures/DistributionIndustry.svg", width=1000, height=600, scale=2)
-
 
 ```
 
