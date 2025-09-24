@@ -1,0 +1,119 @@
+---
+title: Assignment 03
+author:
+  - name: Sabrina Minaya Vasquez
+    affiliations:
+      - id: bu
+        name: Boston University
+        city: Boston
+        state: MA
+number-sections: true
+date: '2025-09-24'
+format:
+  html:
+    theme: cerulean
+    toc: true
+    toc-depth: 2
+    code-overflow: wrap
+    self-contained: true
+  docx: default
+  pdf: default
+date-modified: today
+date-format: long
+execute:
+  echo: true
+  eval: true
+  freeze: auto
+jupyter: python3
+---
+
+:::{.callout-important}
+FATAL (/opt/quarto/share/filters/main.lua:7018) An error occurred: Could not convert a SVG to a PDF for output. Please ensure that rsvg-convert is available on the path. Error running filter /opt/quarto/share/filters/main.lua:
+:::
+
+:::{.callout-tip}
+That error means Quarto (Pandoc) tried to place an SVG in your PDF but couldn’t find an SVG→PDF converter (rsvg-convert). You’ve got two easy fixes—pick one:
+
+Option A (recommended on Ubuntu/EC2): install the converter
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y librsvg2-bin   # provides rsvg-convert
+# verify
+rsvg-convert --version
+
+
+macOS (Homebrew):
+
+brew install librsvg
+
+
+Windows:
+
+Install Inkscape and make sure it’s on PATH, or install MSYS2 and mingw-w64-x86_64-librsvg.
+
+Quarto will use rsvg-convert or inkscape if found.
+
+Re-render your PDF after installing.
+
+Option B: stop emitting SVGs for PDF (use PNG instead)
+
+In your .qmd YAML, set PDF figures to PNG:
+
+format:
+  html:
+    theme: cerulean
+  pdf:
+    fig-format: png   # <— rasterize figures for PDF
+
+# (avoid writing .svg for plots you plan to include in the PDF)
+
+
+If you previously inserted SVG files (e.g., ![](figures/myplot.svg)), change them to .png or remove those lines and let Quarto capture the figure output directly from the code chunk.
+
+Quick checklist
+
+✅ Install librsvg2-bin (Option A) or set fig-format: png + export PNGs (Option B).
+
+✅ Make sure kaleido is installed if you export images from Python: pip install -U kaleido.
+
+✅ Re-render: quarto render your_file.qmd -t pdf.
+
+Either approach resolves the “Could not convert a SVG to a PDF” error.
+
+:::
+
+:::{.callout-important}
+I installed kaleido but still getting the message that I need to install it again .
+ValueError: Image export using the "kaleido" engine requires the kaleido package, which can be installed using pip: $ pip install -U kaleido
+
+:::
+
+:::{.callout-tip}
+
+This error means the Python process that’s running your Quarto notebook can’t import kaleido (even if you installed it somewhere else). Do these steps to fix it quickly.
+
+Option A — Fix from terminal (recommended)
+# 0) Go to your project and activate the SAME venv Quarto uses
+source .venv/bin/activate
+
+# 1) Install/repair kaleido *in this venv*
+pip uninstall -y kaleido
+pip install --no-cache-dir kaleido==0.2.1
+
+# 2) Sanity check: make sure this Python can import kaleido
+python - << 'PY'
+import sys
+print("Python:", sys.executable)
+try:
+    import kaleido
+    print("kaleido version:", getattr(kaleido, "__version__", "unknown"))
+    print("OK: kaleido is importable.")
+except Exception as e:
+    print("NOT OK:", e)
+PY
+
+Then restart your Quarto preview so it picks up the newly installed package:
+
+Most of the time, the issue is simply that kaleido was installed in another Python, not the interpreter your Quarto session is using. The steps above align them.
+
+::::
